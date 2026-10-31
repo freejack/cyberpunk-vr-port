@@ -1514,6 +1514,9 @@ DWORD OpenXRManager::FrameThreadMain() {
                 bool leftStickClicked  = false;
                 bool dpadUsedThisFrame = false;
                 bool triangleShift = false;
+                // Valve Index right trackpad press = Start. Applied with the menu action below, after
+                // the overlay capture, so it keeps the same escape path.
+                bool indexStart = false;
 
                 std::lock_guard<std::mutex> handLock(m_handMutex);
                 // ONE INSTANT: the head position that goes with these controller poses, plus the
@@ -1787,6 +1790,10 @@ DWORD OpenXRManager::FrameThreadMain() {
                     const bool prim   = getBool(m_primaryButtonAction);
                     const bool sec    = getBool(m_secondaryButtonAction);
                     const bool frameBumper=m_steamFrameActions.bumper!=XR_NULL_HANDLE && getBool(m_steamFrameActions.bumper);
+                    // Valve Index: a firm press on the trackpad is Back (left) or Start (right), the
+                    // two menu buttons it lacks (Runtimes/IndexTrackpadInput.hpp). The
+                    // actions are inactive on every other controller, so this returns 0 there.
+                    const uint16_t indexMenu=m_indexTrackpad.UpdateHand(i,getVec2,getFloat,getBool);
 
                     // XInput-compatible button bits so the hook can OR them into
                     // XINPUT_GAMEPAD.wButtons directly (XINPUT_GAMEPAD_*).
@@ -1814,6 +1821,7 @@ DWORD OpenXRManager::FrameThreadMain() {
                         if(frameBumper)ctrl.buttons|=XB_LEFT_SHOULDER;
                         // Only Frame's separate bumper emits LB here. The grip
                         // remains available for magazine grabs and VR gestures.
+                        ctrl.buttons|=indexMenu;   // Index left trackpad: Back (the pause menu)
 
                         // LEFT stick click = D-Pad modifier (direction picked with the
                         // RIGHT stick, see the right-hand branch). The vanilla L3
@@ -1835,6 +1843,7 @@ DWORD OpenXRManager::FrameThreadMain() {
                         if (prim)   ctrl.buttons |= XB_A;
                         if (sec)    ctrl.buttons |= XB_B;
                         if(frameBumper)ctrl.buttons|=XB_RIGHT_SHOULDER;
+                        indexStart=indexMenu!=0;   // Index right trackpad: Start (the Hub), applied below
 
                         // D-PAD CHORD: while the LEFT stick click is held, the RIGHT
                         // stick picks the D-Pad direction. The right axes are zeroed for
@@ -1916,6 +1925,9 @@ DWORD OpenXRManager::FrameThreadMain() {
                             if (!logged) { logged = true; Log("OpenXRManager[PSVR2]: Create SystemButton active (tap=Start, hold=Back).\n"); }
                         }
                     } else if(menuPressed)ctrl.buttons|=0x0010; // Other headsets unchanged.
+                    // Valve Index right trackpad: Start on any runtime, beside the PSVR2 Create path (which only
+                    // ORs its own event in); the Index actions are inactive on every other controller.
+                    if(indexStart)ctrl.buttons|=0x0010; // XINPUT_GAMEPAD_START
 
                     // Publish the snapshot for the XInput hook.
                     std::lock_guard<std::mutex> inLock(m_inputMutex);

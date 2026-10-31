@@ -2,6 +2,7 @@
 #include "Runtimes/AsymmetricProjection.hpp"
 struct AsymEyeWindows { cvr::projection::EyeWindow eye[2]; };
 #include "Runtimes/SteamFrameInput.hpp"
+#include "Runtimes/IndexTrackpadInput.hpp"
 #include "Framegen/Presenter.hpp"
 #include "Framegen/StatsOverlay.hpp"
 #include "Overlay/VrPanel.hpp"
@@ -969,6 +970,8 @@ private:
     XrAction m_hapticAction = XR_NULL_HANDLE;            // Vibration OUTPUT, per hand
     XrAction m_psvr2TriangleTouchAction = XR_NULL_HANDLE;
     cvr::input::SteamFrameActions m_steamFrameActions{};
+    // Valve Index: trackpad presses as Back (left) and Start (right); its system button is SteamVR's.
+    cvr::input::IndexTrackpadActions m_indexTrackpad{};
     XrPath m_handPaths[2] = { XR_NULL_PATH, XR_NULL_PATH };
     XrSpace m_handSpaces[2] = { XR_NULL_HANDLE, XR_NULL_HANDLE };
     // Latest controller snapshot, owned by the frame thread.

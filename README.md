@@ -327,15 +327,26 @@ VR controller input is merged into the native CP2077 gamepad, so the in-game
 | X | Reload · interact |
 | Y, **tap** | Next weapon (the game's own switch) |
 | Y, **held** | **VR weapon wheel** in front of the body — point at a weapon, the arm cyberware, fists, holster, a grenade or a consumable and let go of Y; the game keeps running (*Controls → VR weapon wheel on a held Y*; off = the game's own wheel) |
-| Menu button (left on Touch; right on Steam Frame) | Pause menu |
+| Menu button (left on Touch; right on Steam Frame) | Start (≡) |
+| **Valve Index:** **right / left trackpad**, pressed firmly | **Start (≡) / Back (⧉)** |
 | Swing a melee weapon | VR motion melee (native attack along the blade) |
 | Left trigger held + right grip, throw, open the grip | **Physical throw** of a throwable melee weapon |
 | Squat in the room | Crouch (physical crouch; the right stick still works) |
+
+With the game's default controller bindings, **Start opens the Hub and map** and
+**Back opens the pause menu** (`r6\config\inputUserMappings.xml`; Esc also pauses).
 
 Steam Frame uses the native `XR_VALVE_frame_controller_interaction` profile when
 available. Right A/B/X/Y, left D-pad, left View, right Menu and both bumpers map
 to the matching gamepad controls. Grips retain the port's VR gestures. Touch
 emulation remains the fallback when the runtime does not expose the extension.
+
+**Valve Index** controllers have no menu button a game can receive: SteamVR keeps
+the system button for its dashboard. A firm press on each trackpad stands in,
+placed as on a gamepad: **left = Back**, **right = Start**, which is also what the
+title screen waits for. Press anywhere but the bottom of the pad; a thumb resting
+on it does nothing, and the press ends when you ease off. The layout is
+VirtualyMichael's, from PR #105.
 
 While the scanner is open the same hand works it: the **left stick to the stop**
 pages the quickhack list (below the stop it still walks, so you can read and move),

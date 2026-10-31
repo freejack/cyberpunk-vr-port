@@ -833,15 +833,18 @@ bool OpenXRManager::Init() {
             // suggestions -- a second call for the haptic alone would drop every input binding.
             makeAction(m_hapticAction,          XR_ACTION_TYPE_VIBRATION_OUTPUT, "haptic",         "Haptic Feedback",      true);
             if(steamFrameEnabled)m_steamFrameActions.Create(makeAction);
+            m_indexTrackpad.Create(makeAction);
         }
         Log("OpenXRManager[Input]: gameplay action set %s (xr_input_actions=%d)\n",
             inputActionsEnabled ? "ENABLED" : "DISABLED (pose-only)", (int)inputActionsEnabled);
 
         struct Bind { XrAction action; const char* path; };
 
-        auto suggest = [&](const char* profileStr, std::initializer_list<Bind> list) {
+        // True when the runtime accepted the suggestion. A suggestion REPLACES the profile's previous
+        // one, so a refused list can be retried with fewer bindings (the Index trackpads, below).
+        auto suggest = [&](const char* profileStr, const std::vector<Bind>& list) {
             XrPath profile = XR_NULL_PATH;
-            if (XR_FAILED(xrStringToPath(m_instance, profileStr, &profile))) return;
+            if (XR_FAILED(xrStringToPath(m_instance, profileStr, &profile))) return false;
             std::vector<XrActionSuggestedBinding> v;
             v.reserve(list.size());
             for (const Bind& b : list) {
@@ -864,6 +867,7 @@ bool OpenXRManager::Init() {
             sb.countSuggestedBindings = static_cast<uint32_t>(v.size());
             XrResult r = xrSuggestInteractionProfileBindings(m_instance, &sb);
             Log("OpenXRManager[Input]: suggest bindings %s -> %d (count=%u)\n", profileStr, r, sb.countSuggestedBindings);
+            return XR_SUCCEEDED(r);
         };
 
         if (!inputActionsEnabled) {
@@ -939,28 +943,41 @@ bool OpenXRManager::Init() {
             { m_hapticAction,          "/user/hand/right/output/haptic" },
         });
 
-        // -- Valve Index: A/B on both hands, system as menu --
-        suggest("/interaction_profiles/valve/index_controller", {
-            { m_handPoseAction,        "/user/hand/left/input/grip/pose" },
-            { m_handPoseAction,        "/user/hand/right/input/grip/pose" },
-            { m_handAimPoseAction,     "/user/hand/left/input/aim/pose" },
-            { m_handAimPoseAction,     "/user/hand/right/input/aim/pose" },
-            { m_thumbstickAction,      "/user/hand/left/input/thumbstick" },
-            { m_thumbstickAction,      "/user/hand/right/input/thumbstick" },
-            { m_thumbstickClickAction, "/user/hand/left/input/thumbstick/click" },
-            { m_thumbstickClickAction, "/user/hand/right/input/thumbstick/click" },
-            { m_triggerAction,         "/user/hand/left/input/trigger/value" },
-            { m_triggerAction,         "/user/hand/right/input/trigger/value" },
-            { m_gripAction,            "/user/hand/left/input/squeeze/value" },
-            { m_gripAction,            "/user/hand/right/input/squeeze/value" },
-            { m_primaryButtonAction,   "/user/hand/left/input/a/click" },
-            { m_primaryButtonAction,   "/user/hand/right/input/a/click" },
-            { m_secondaryButtonAction, "/user/hand/left/input/b/click" },
-            { m_secondaryButtonAction, "/user/hand/right/input/b/click" },
-            { m_menuButtonAction,      "/user/hand/left/input/system/click" },
-            { m_hapticAction,          "/user/hand/left/output/haptic" },
-            { m_hapticAction,          "/user/hand/right/output/haptic" },
-        });
+        // -- Valve Index: A/B on both hands; the trackpads' top edges are Back (left) and Start (right) --
+        // system/click stays bound for a runtime that hands it out, but SteamVR does not: the registry
+        // marks it system="true" and the press goes to the dashboard (Runtimes/IndexTrackpadInput.hpp).
+        // Own scope: the goto above must not jump over the list's initialization.
+        {
+            const std::vector<Bind> index = {
+                { m_handPoseAction,        "/user/hand/left/input/grip/pose" },
+                { m_handPoseAction,        "/user/hand/right/input/grip/pose" },
+                { m_handAimPoseAction,     "/user/hand/left/input/aim/pose" },
+                { m_handAimPoseAction,     "/user/hand/right/input/aim/pose" },
+                { m_thumbstickAction,      "/user/hand/left/input/thumbstick" },
+                { m_thumbstickAction,      "/user/hand/right/input/thumbstick" },
+                { m_thumbstickClickAction, "/user/hand/left/input/thumbstick/click" },
+                { m_thumbstickClickAction, "/user/hand/right/input/thumbstick/click" },
+                { m_triggerAction,         "/user/hand/left/input/trigger/value" },
+                { m_triggerAction,         "/user/hand/right/input/trigger/value" },
+                { m_gripAction,            "/user/hand/left/input/squeeze/value" },
+                { m_gripAction,            "/user/hand/right/input/squeeze/value" },
+                { m_primaryButtonAction,   "/user/hand/left/input/a/click" },
+                { m_primaryButtonAction,   "/user/hand/right/input/a/click" },
+                { m_secondaryButtonAction, "/user/hand/left/input/b/click" },
+                { m_secondaryButtonAction, "/user/hand/right/input/b/click" },
+                { m_menuButtonAction,      "/user/hand/left/input/system/click" },
+                { m_hapticAction,          "/user/hand/left/output/haptic" },
+                { m_hapticAction,          "/user/hand/right/output/haptic" },
+            };
+            std::vector<Bind> withTrackpads = index;
+            m_indexTrackpad.AppendBindings<Bind>(withTrackpads);
+            // ONE PATH THE RUNTIME REFUSES DROPS THE WHOLE PROFILE. Retry without the trackpads, so a
+            // refusal costs the two menu presses and not the Index's every other binding.
+            if (!suggest(cvr::input::IndexProfile, withTrackpads) && withTrackpads.size() != index.size()) {
+                Log("OpenXRManager[Input]: Index trackpad bindings refused; suggesting the Index profile without them\n");
+                suggest(cvr::input::IndexProfile, index);
+            }
+        }
 
         // -- HTC Vive Wand: no A/B/X/Y, no thumbstick (touchpad as v2f), grip is bool --
         suggest("/interaction_profiles/htc/vive_controller", {
@@ -2461,6 +2478,7 @@ void OpenXRManager::Shutdown() {
     m_secondaryButtonAction = XR_NULL_HANDLE;
     m_menuButtonAction = XR_NULL_HANDLE;
     m_steamFrameActions = {};
+    m_indexTrackpad = {};
 
     m_views.clear();
     m_viewConfigViews.clear();

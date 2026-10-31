@@ -228,3 +228,6 @@ tools/body_stand_in/*
 !tools/lua_host_tests/
 tools/lua_host_tests/__pycache__/
 !tools/lua_host_tests/*.py
+
+# Valve Index trackpad menu presses: registry paths, press detection, buttons.
+!tools/index_trackpad_tests/
