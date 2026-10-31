@@ -1557,6 +1557,7 @@ bool g_isInVehicle = false;
 std::atomic<bool> g_isDriving{false};
 std::atomic<int> g_vehicleState{-1};
 std::atomic<int> g_sceneTier{0};
+std::atomic<uint64_t> g_sceneTierStampMs{0};
 std::atomic<float> g_lookStickX{0.0f};
 bool g_isAiming = false;
 bool g_hasWeaponEquipped = false;

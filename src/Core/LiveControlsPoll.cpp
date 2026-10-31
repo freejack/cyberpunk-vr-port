@@ -53,6 +53,15 @@
 #include "Core/CoreInternal.hpp"
 #include "Camera/CameraLink.hpp"
 #include "Hooks/Hook.hpp"
+#include "Runtimes/CutsceneVignette.hpp"
+
+// The cutscene vignette's values, normalized together: one place for the ini read and the panel.
+static void StoreCutsceneVignette(int tier,float strength,int size) {
+    const auto s=cvr::comfort::NormalizeVignette({tier,strength,size});
+    g_liveControls.xrCutsceneVignetteTier=s.tier;
+    g_liveControls.xrCutsceneVignetteStrength=s.strength;
+    g_liveControls.xrCutsceneVignetteSize=s.size;
+}
 
 // Poll the CET VRIK mod's recenter request (written with an incrementing counter on
 // save load / OnGameAttached); recenter when the counter changes.
@@ -600,6 +609,9 @@ void PollLiveControls() {
     int xrLadderGripClimb = g_liveControls.xrLadderGripClimb;
     int xrLadderAutoFinish = g_liveControls.xrLadderAutoFinish;
     float xrLadderFinishDistance = g_liveControls.xrLadderFinishDistance;
+    int xrCutsceneVignetteTier = g_liveControls.xrCutsceneVignetteTier;
+    float xrCutsceneVignetteStrength = g_liveControls.xrCutsceneVignetteStrength;
+    int xrCutsceneVignetteSize = g_liveControls.xrCutsceneVignetteSize;
     float xrBodyFreeLookDeg = g_liveControls.xrBodyFreeLookDeg;
     float xrBodyFreeLookDownDeg = g_liveControls.xrBodyFreeLookDownDeg;
     float xrBodyFreeLookSwimDeg = g_liveControls.xrBodyFreeLookSwimDeg;
@@ -1404,6 +1416,9 @@ void PollLiveControls() {
         if (sscanf_s(line, "xr_ladder_grip_climb=%d", &intValue) == 1) xrLadderGripClimb=intValue;
         if (sscanf_s(line, "xr_ladder_auto_finish=%d", &intValue) == 1) xrLadderAutoFinish=intValue;
         if (sscanf_s(line, "xr_ladder_finish_distance=%f", &value) == 1) xrLadderFinishDistance=value;
+        if (sscanf_s(line, "xr_cutscene_vignette_tier=%d", &intValue) == 1) xrCutsceneVignetteTier=intValue;
+        if (sscanf_s(line, "xr_cutscene_vignette_strength=%f", &value) == 1) xrCutsceneVignetteStrength=value;
+        if (sscanf_s(line, "xr_cutscene_vignette_size=%d", &intValue) == 1) xrCutsceneVignetteSize=intValue;
         if (sscanf_s(line, "xr_breaststroke_swim=%d", &intValue) == 1) {
             xrBreaststrokeSwim=intValue;
             continue;
@@ -1621,6 +1636,7 @@ void PollLiveControls() {
     g_liveControls.xrLadderGripClimb = xrLadderGripClimb != 0 ? 1 : 0;
     g_liveControls.xrLadderAutoFinish = xrLadderAutoFinish != 0 ? 1 : 0;
     g_liveControls.xrLadderFinishDistance=std::clamp(std::isfinite(xrLadderFinishDistance) ? xrLadderFinishDistance:1.0f,.2f,1.2f);
+    StoreCutsceneVignette(xrCutsceneVignetteTier,xrCutsceneVignetteStrength,xrCutsceneVignetteSize);
     g_liveControls.xrBodyFreeLookDeg=std::clamp(xrBodyFreeLookDeg,0.0f,60.0f);
     g_liveControls.xrBodyFreeLookDownDeg=std::clamp(std::isfinite(xrBodyFreeLookDownDeg) ? xrBodyFreeLookDownDeg:30.0f,0.0f,90.0f);
     g_liveControls.xrBodyFreeLookSwimDeg=std::clamp(std::isfinite(xrBodyFreeLookSwimDeg) ? xrBodyFreeLookSwimDeg:5.0f,0.0f,90.0f);
@@ -1938,6 +1954,9 @@ LiveControlsUiState MakeLiveControlsUiState() {
     state.xrLadderGripClimb = g_liveControls.xrLadderGripClimb;
     state.xrLadderAutoFinish=g_liveControls.xrLadderAutoFinish;
     state.xrLadderFinishDistance=g_liveControls.xrLadderFinishDistance;
+    state.xrCutsceneVignetteTier=g_liveControls.xrCutsceneVignetteTier;
+    state.xrCutsceneVignetteStrength=g_liveControls.xrCutsceneVignetteStrength;
+    state.xrCutsceneVignetteSize=g_liveControls.xrCutsceneVignetteSize;
     state.xrBodyFreeLookDeg=g_liveControls.xrBodyFreeLookDeg;
     state.xrBodyFreeLookDownDeg=g_liveControls.xrBodyFreeLookDownDeg;
     state.xrBodyFreeLookSwimDeg=g_liveControls.xrBodyFreeLookSwimDeg;
@@ -2264,6 +2283,12 @@ void PersistLiveControlsUiState(const LiveControlsUiState& state) {
     fprintf(file, "xr_breaststroke_swim=%d\n", state.xrBreaststrokeSwim != 0 ? 1 : 0);
     fprintf(file, "xr_ladder_grip_climb=%d\n", state.xrLadderGripClimb != 0 ? 1 : 0);
     fprintf(file, "xr_ladder_auto_finish=%d\nxr_ladder_finish_distance=%.3f\n",state.xrLadderAutoFinish!=0 ? 1:0,state.xrLadderFinishDistance);
+    {
+        const auto v=cvr::comfort::NormalizeVignette({state.xrCutsceneVignetteTier,state.xrCutsceneVignetteStrength,
+            state.xrCutsceneVignetteSize});
+        fprintf(file, "xr_cutscene_vignette_tier=%d\nxr_cutscene_vignette_strength=%.3f\nxr_cutscene_vignette_size=%d\n",
+                v.tier,v.strength,v.size);
+    }
     fprintf(file, "xr_body_free_look_deg=%.3f\n", state.xrBodyFreeLookDeg);
     fprintf(file, "xr_body_free_look_down_deg=%.3f\n", state.xrBodyFreeLookDownDeg);
     fprintf(file, "xr_body_free_look_swim_deg=%.3f\n", state.xrBodyFreeLookSwimDeg);
@@ -2388,6 +2413,8 @@ extern "C" void SetLiveControlsUiState(const LiveControlsUiState* state, int per
     g_liveControls.xrLadderGripClimb = state->xrLadderGripClimb != 0 ? 1 : 0;
     g_liveControls.xrLadderAutoFinish=state->xrLadderAutoFinish!=0 ? 1:0;
     g_liveControls.xrLadderFinishDistance=std::clamp(std::isfinite(state->xrLadderFinishDistance) ? state->xrLadderFinishDistance:1.0f,.2f,1.2f);
+    StoreCutsceneVignette(state->xrCutsceneVignetteTier,state->xrCutsceneVignetteStrength,
+        state->xrCutsceneVignetteSize);
     g_liveControls.xrBodyFreeLookDeg=std::clamp(state->xrBodyFreeLookDeg,0.0f,60.0f);
     g_liveControls.xrBodyFreeLookDownDeg=std::clamp(std::isfinite(state->xrBodyFreeLookDownDeg) ? state->xrBodyFreeLookDownDeg:30.0f,0.0f,90.0f);
     g_liveControls.xrBodyFreeLookSwimDeg=std::clamp(std::isfinite(state->xrBodyFreeLookSwimDeg) ? state->xrBodyFreeLookSwimDeg:5.0f,0.0f,90.0f);

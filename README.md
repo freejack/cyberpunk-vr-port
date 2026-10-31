@@ -91,6 +91,13 @@ Repository: <https://github.com/dariulone/cyberpunk-vr-port>
   and elbows hang off the BODY rather than the head, and the solve is clocked by
   the engine's own animation batch. VRIK suspends itself during cutscenes so the
   avatar does not fight an authored scene.
+- **Cutscene comfort vignette.** While a cinematic moves the camera for you, the
+  edges of the view fade to dark and fade back when control returns — the motion
+  your inner ear does not feel is mostly seen at the periphery. The ring is centred
+  on each eye's own lens axis, sits under subtitles, dialogue choices and the
+  overlay, and covers generated frames too. Braindances and taken-over cameras are
+  left alone. On by default for cinematics (Tier 4+); the threshold, strength and
+  size (Light / Medium / Strong) are in *General → Cutscene vignette*.
 - **Roomscale movement, bending and hybrid body rotation** with paired headset,
   camera and avatar poses, anatomical shoulder reach and preserved foot contacts.
 - **Gesture swimming and grip-based ladder climbing**, including water-aware
@@ -396,6 +403,11 @@ General, Framegen, HUD, Controls, Stereo, Avatar, Driving and Bindings.
 - Also in **General** — CAS sharpening, shared sun shadows, scope lens
   stabilization, variable rate shading for the periphery and the hidden-area mask
   for the lens edges.
+- **Cutscene vignette** in General — the scene tier it starts at (Off, Tier 2+,
+  Tier 3+, Tier 4+ by default, Tier 5 only), its strength, and its size: how much
+  view stays clear around each eye's axis — Light 60°, Medium 45° (default),
+  Strong 30°. The line under it shows the scene tier the game reports right now,
+  to match a scene to the threshold while it plays.
 - **Controls** — decoupled weapon aim and its laser dot, locomotion source
   (Game / HMD / left hand / right hand), snap turn and angle, immersive holsters,
   controller vibration and its strength, physical crouch and its depth, the

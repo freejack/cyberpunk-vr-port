@@ -103,6 +103,12 @@ void InitRuntimePaths() {
     g_liveControls.xrCutsceneSuspendTier = 3;
     g_liveControls.xrVehicleCutsceneSuspendTier = 3;
 
+    // Default: the comfort vignette over the same cinematics (Runtimes/CutsceneVignette.hpp). The scene
+    // moves the camera there, not the player, and the periphery is where that motion is felt most.
+    g_liveControls.xrCutsceneVignetteTier = cvr::comfort::kDefaultVignetteTier;
+    g_liveControls.xrCutsceneVignetteStrength = cvr::comfort::kDefaultVignetteStrength;
+    g_liveControls.xrCutsceneVignetteSize = cvr::comfort::kDefaultVignetteSize;
+
     // Default ON: VR controller -> XInput gamepad pipeline. Both the entry-point
     // detour (xrXInputInstall) and the gameplay action set (xrInputActions) are
     // required for the game to see the controller; without them CP2077 detects no
@@ -168,6 +174,9 @@ void EnsureLiveControlFileExists() {
     fprintf(file, "xr_breaststroke_swim=1\n");
     fprintf(file, "xr_ladder_grip_climb=1\n");
     fprintf(file, "xr_ladder_auto_finish=1\nxr_ladder_finish_distance=1.0\n");
+    fprintf(file, "xr_cutscene_vignette_tier=%d\nxr_cutscene_vignette_strength=%.3f\nxr_cutscene_vignette_size=%d\n",
+            cvr::comfort::kDefaultVignetteTier, cvr::comfort::kDefaultVignetteStrength,
+            cvr::comfort::kDefaultVignetteSize);
     fprintf(file, "xr_body_free_look_swim_deg=5\n");
     fprintf(file, "first_launch=1\n");
     fprintf(file, "xr_motion_predict_ms=0.0\n");

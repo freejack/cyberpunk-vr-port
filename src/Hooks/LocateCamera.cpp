@@ -340,6 +340,7 @@ void RefreshPlayerCameraState() {
                     else              tier = *static_cast<const int32_t*>(tp);
                 }
                 g_sceneTier.store(tier, std::memory_order_relaxed);
+                g_sceneTierStampMs.store(GetTickCount64(), std::memory_order_relaxed);
             }
         }
     }

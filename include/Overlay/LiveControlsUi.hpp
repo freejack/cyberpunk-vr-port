@@ -153,6 +153,10 @@ struct LiveControlsUiState {
     int xrLadderGripClimb;
     int xrLadderAutoFinish;
     float xrLadderFinishDistance;
+    // Cutscene comfort vignette; same meaning and encoding as in LiveControls.
+    int xrCutsceneVignetteTier;
+    float xrCutsceneVignetteStrength;
+    int xrCutsceneVignetteSize;
 };
 
 // Read-only snapshot for the compact ADS-camera diagnostic (dabinn, TofuExpress f8a827eb).

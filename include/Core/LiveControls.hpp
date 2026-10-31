@@ -1,5 +1,6 @@
 #pragma once
 #include "Render/SharpenPolicy.hpp"
+#include "Runtimes/CutsceneVignette.hpp"
 
 // ================================================================================================
 // The live settings block -- vrport.ini, re-read whenever the file's timestamp changes.
@@ -114,6 +115,13 @@ struct LiveControls {
     volatile int xrLadderGripClimb = 1;
     volatile int xrLadderAutoFinish = 1;
     volatile float xrLadderFinishDistance = 1.0f;
+    // CUTSCENE COMFORT VIGNETTE (Runtimes/CutsceneVignette.hpp): darkens the edge of the view while a
+    // cinematic moves the camera. Tier uses the VRIK suspend's encoding (-1 = off, 1..4 = Tier2+..Tier5);
+    // strength is the perceived darkening at the edge (0..1); size is 0 Light, 1 Medium, 2 Strong
+    // (cvr::comfort::kVignetteSizes: how narrow the clear view is). Read by the submit thread.
+    volatile int xrCutsceneVignetteTier = cvr::comfort::kDefaultVignetteTier;
+    volatile float xrCutsceneVignetteStrength = cvr::comfort::kDefaultVignetteStrength;
+    volatile int xrCutsceneVignetteSize = cvr::comfort::kDefaultVignetteSize;
 };
 
 extern LiveControls g_liveControls;

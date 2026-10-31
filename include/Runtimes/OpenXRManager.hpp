@@ -23,6 +23,7 @@ struct AsymEyeWindows { cvr::projection::EyeWindow eye[2]; };
 #include "Render/SharpenPass.hpp"
 #include "Render/ColorBlit.hpp"
 #include "Render/SrgbToLinearPass.hpp"
+#include "Render/VignettePass.hpp"
 #include "Runtimes/HudQuad.hpp"
 #include "Runtimes/RoomscaleMovement.hpp"
 #include "Runtimes/TrackingReset.hpp"
@@ -1258,6 +1259,12 @@ private:
     // OpenXRInternal.hpp): each eye is drawn through the decode instead of copied. Set with the swapchains.
     std::unique_ptr<SrgbToLinearPass> m_srgbToLinearPass;
     bool m_convertForSwapchain = false;
+
+    // The cutscene comfort vignette (Runtimes/CutsceneVignette.hpp), drawn into the eye images through
+    // their own RTVs. Built with the swapchains, for their view format; null when it failed to build,
+    // which only costs the vignette. m_vignetteLinear: that target blends in linear light.
+    std::unique_ptr<VignettePass> m_vignettePass;
+    bool m_vignetteLinear = true;
 
     // Reuse-last-frame path: persistent "last good" eye images + their pose/fov.
     // On a stale tick we re-present these with the stashed pose so the runtime

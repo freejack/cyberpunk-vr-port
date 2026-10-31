@@ -18,6 +18,7 @@
 #include "Core/VrCoreShared.hpp"
 #include "Overlay/ImGuiOverlay.hpp"
 #include "Overlay/LiveControlsUi.hpp"
+#include "Runtimes/CutsceneVignette.hpp"
 #include "Runtimes/OpenXRManager.hpp"
 #include <algorithm>
 #include <cfloat>
@@ -906,6 +907,60 @@ bool DrawLiveControls(LiveControlsUiState& state,int section,bool* foveatedEditi
             if (UI::CollapsingHeader("GAME MENUS", ImGuiTreeNodeFlags_DefaultOpen)) {
                 changed |= CheckboxInt("VR menu quad", &state.xrMenuRect);
                 changed |= widgets::SliderFloat("VR menu FOV", &state.xrMenuFov, 30.0f, 120.0f, "%.1f deg");
+            }
+            // Runtimes/CutsceneVignette.hpp. The tier combo reads like the VRIK suspend's (same stored
+            // encoding, same labels, so the VR menu's translations carry over), with Off in place of Never.
+            if (UI::CollapsingHeader("CUTSCENE VIGNETTE", ImGuiTreeNodeFlags_DefaultOpen)) {
+                UI::PushID("cutsceneVignette");
+                namespace comfort = cvr::comfort;
+                static const int kTierValues[] = { comfort::kVignetteTierOff, 1, 2, 3, 4 };
+                static const char* kTierLabels[] = {
+                    "Off",
+                    "Staged scenes and up (Tier 2+)",
+                    "Tier 3 and up",
+                    "Cinematics (Tier 4+)  [default]",
+                    "Full cinematics only (Tier 5)",
+                };
+                const int storedTier = comfort::NormalizeVignetteTier(state.xrCutsceneVignetteTier);
+                int tierIndex = 0;
+                for (int i = 0; i < 5; ++i) if (kTierValues[i] == storedTier) tierIndex = i;
+                if (widgets::Combo("Cutscene vignette", &tierIndex, kTierLabels, 5)) {
+                    state.xrCutsceneVignetteTier = kTierValues[tierIndex];
+                    changed = true;
+                }
+                if (UI::IsItemHovered())
+                    UI::SetTooltip("Darkens the edge of the view while a cutscene moves the camera, to reduce motion sickness.\n"
+                                   "Applies at or above this scene tier and fades in and out.\n"
+                                   "Braindances and taken-over cameras are never darkened.");
+                UI::BeginDisabled(storedTier == comfort::kVignetteTierOff);
+                float strengthPercent = state.xrCutsceneVignetteStrength * 100.0f;
+                if (widgets::SliderFloat("Vignette strength", &strengthPercent, 0.0f, 100.0f, "%.0f %%")) {
+                    state.xrCutsceneVignetteStrength = strengthPercent / 100.0f;
+                    changed = true;
+                }
+                if (UI::IsItemHovered()) UI::SetTooltip("How dark the edge of the view gets. 100%% is black.");
+                // Indexed like comfort::kVignetteSizes; the degrees are that table's clear view.
+                static const char* kSizeLabels[comfort::kVignetteSizeCount] = {
+                    "Light - 60 deg clear view",
+                    "Medium - 45 deg clear view  [default]",
+                    "Strong - 30 deg clear view",
+                };
+                int sizeIndex = comfort::NormalizeVignetteSize(state.xrCutsceneVignetteSize);
+                if (widgets::Combo("Vignette size", &sizeIndex, kSizeLabels, comfort::kVignetteSizeCount)) {
+                    state.xrCutsceneVignetteSize = sizeIndex;
+                    changed = true;
+                }
+                if (UI::IsItemHovered())
+                    UI::SetTooltip("How much of the view stays clear around where each eye looks through the lens.\n"
+                                   "Stronger narrows it, hiding more of the motion at the sides.");
+                UI::EndDisabled();
+                // The tier the game reports right now, so a scene that should (or should not) be darkened
+                // can be matched to the threshold above while it plays.
+                const auto status = comfort::GetVignetteStatus();
+                if (!status.tierFresh) UI::TextDisabled("Scene tier: none (no player)");
+                else if (status.excluded) UI::TextDisabled("Scene tier: %d   Vignette: held off (braindance or camera)", status.engineTier);
+                else UI::TextDisabled("Scene tier: %d   Vignette: %.0f %%", status.engineTier, status.amount * 100.0f);
+                UI::PopID();
             }
 
             if (UI::CollapsingHeader("Tracking / Camera")) {

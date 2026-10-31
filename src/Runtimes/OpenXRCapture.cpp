@@ -1758,6 +1758,16 @@ bool OpenXRManager::EnsureMonoSubmitResources() {
         }
         m_convertForSwapchain = true;
     }
+    // Optional: a failure here costs the cutscene vignette and nothing else, so it never fails the submit.
+    {
+        const auto viewFormat = static_cast<DXGI_FORMAT>(selectedFormat);
+        if (!m_vignettePass) m_vignettePass = std::make_unique<VignettePass>();
+        if (!m_vignettePass->EnsureInitialized(m_d3dDevice, viewFormat)) {
+            Log("OpenXRManager: the cutscene vignette is unavailable for swapchain format %lld\n", selectedFormat);
+            m_vignettePass.reset();
+        }
+        m_vignetteLinear = VignettePass::BlendsInLinear(viewFormat, m_convertForSwapchain);
+    }
 
     for (int i = 0; i < 3; ++i) {
         if (FAILED(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_cmdAllocators[i])))) {

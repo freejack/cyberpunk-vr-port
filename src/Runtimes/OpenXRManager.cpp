@@ -2363,6 +2363,7 @@ void OpenXRManager::Shutdown() {
         m_menuWindow = nullptr;
     }
     m_sharpenPass.reset();
+    m_vignettePass.reset();
     if (m_monoCapturedFrame.texture) {
         m_monoCapturedFrame.texture->Release();
         m_monoCapturedFrame.texture = nullptr;

@@ -181,3 +181,6 @@ tools/vr_menu_tests/*
 !tools/vr_menu_assets/
 tools/vr_menu_assets/*
 !tools/vr_menu_assets/matte_sources.py
+
+# Cutscene comfort vignette: policy/geometry and the pass on the real adapter.
+!tools/comfort_tests/

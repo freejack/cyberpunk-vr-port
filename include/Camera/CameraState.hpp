@@ -46,6 +46,10 @@ extern RED4ext::CBaseFunction* g_isDriverFunc;
 // write and every read. Atomic because the writer is the camera thread and the reader is the
 // animation thread.
 extern std::atomic<int> g_sceneTier;
+// GetTickCount64() of the last write to g_sceneTier. It is only written while there is a player to read
+// it off, so on the main menu or a loading screen it keeps whatever the last scene left. Consumers that
+// run outside gameplay (the cutscene vignette, on the submit thread) use this to stop believing it.
+extern std::atomic<uint64_t> g_sceneTierStampMs;
 // The look axis as the game receives it, published by the XInput merge and consumed by the camera
 // composition. -1..1, right positive.
 extern std::atomic<float> g_lookStickX;

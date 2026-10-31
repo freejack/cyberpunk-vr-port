@@ -8,6 +8,7 @@
 #include "Runtimes/OpenXRManager.hpp"
 #include "Runtimes/Haptics.hpp"
 #include "Natives/VrMenu.hpp"
+#include "Runtimes/CutsceneVignette.hpp"
 #include "Runtimes/WristBase.hpp"
 #include "Camera/ImagePoseIdentity.hpp"
 #include "Runtimes/RoomscaleTracking.hpp"
@@ -2009,6 +2010,10 @@ DWORD OpenXRManager::FrameThreadMain() {
                     // Sample once for both eyes, after frame generation. A repeated/generated
                     // source must not freeze the eyelids or interpolate a black capture into the world.
                     const float menuBlink = cvr::vrmenu::BlinkClosure();
+                    // The cutscene comfort vignette, sampled here for the same reason: once per submit,
+                    // after frame generation, so every frame the headset shows -- generated or repeated
+                    // -- carries it and its fade advances with the display, not with the game.
+                    const auto cutsceneVignette = cvr::comfort::SampleCutsceneVignette();
                     bool useDepthLayer = false;
                     std::vector<bool> acquiredEyes(viewCountOutput, false);
                     std::vector<bool> acquiredDepthEyes(viewCountOutput, false);
@@ -2276,6 +2281,22 @@ DWORD OpenXRManager::FrameThreadMain() {
                                 projectionViews[eye].fov.angleLeft  += d;
                                 projectionViews[eye].fov.angleRight += d;
                             }
+                        }
+
+                        // THE CUTSCENE COMFORT VIGNETTE (Runtimes/CutsceneVignette.hpp). Drawn here, after
+                        // the last change to this eye's submitted FOV, because that FOV is what puts the
+                        // ring on the eye's optical axis -- the asymmetric window and the flat-content
+                        // vergence turn above both move it. Never over a menu: that image is a flat panel
+                        // on a quad, not the view. The image is in RENDER_TARGET from the copy above.
+                        if (cutsceneVignette.amount > 0.0f && !menuRectActive && m_vignettePass &&
+                            imageIndex < m_eyeSwapchains[eye].rtvs.size()) {
+                            const XrFovf& fov = projectionViews[eye].fov;
+                            const auto shape = cvr::comfort::MakeVignetteShape(fov.angleLeft, fov.angleRight,
+                                fov.angleUp, fov.angleDown, cutsceneVignette.settings, cutsceneVignette.amount,
+                                m_vignetteLinear);
+                            m_vignettePass->Record(m_cmdList, m_eyeSwapchains[eye].rtvs[imageIndex],
+                                static_cast<uint32_t>(m_eyeSwapchains[eye].width),
+                                static_cast<uint32_t>(m_eyeSwapchains[eye].height), shape);
                         }
                         projectionViews[eye].subImage.imageArrayIndex = 0;
                     }
